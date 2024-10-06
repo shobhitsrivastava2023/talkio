@@ -1,4 +1,15 @@
 /** @type {import('next').NextConfig} */
-const nextConfig = {};
+const nextConfig = {
+
+    experimental: {
+		serverComponentsExternalPackages: ["@node-rs/argon2"]
+	},
+
+    images: {
+        domains: ['utfs.io'],
+      },
+
+
+};
 
 export default nextConfig;
