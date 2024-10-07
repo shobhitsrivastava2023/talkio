@@ -4,8 +4,15 @@ import { redirect } from "next/navigation"
 import ProfilePage from '../components/ProtectedComponents/ProfilePage/ProfilePage'
 import ChatPlace from '../components/ProtectedComponents/ChatPlace/ChatPlace'
 import ChatList from '../components/ProtectedComponents/ChatList/ChatList'
+import { prisma } from '@/db/db'
+import { NextResponse } from 'next/server'
+import { useState } from 'react'
 export default async function Page() {
-  const { user } = await validateRequest()
+  const { user } = await validateRequest();
+  
+
+ 
+
 
   if (!user) {
     return redirect("/loginPage")
@@ -15,7 +22,7 @@ export default async function Page() {
     <div className='w-full flex justify-center items-center p-2'>
       <div className='grid grid-cols-3 gap-4 w-full max-w-4xl aspect-[4/3]'>
       <div className='col-span-1 row-span-1 bg-zinc-800 rounded-lg p-4 flex items-center justify-center'>
-          <ProfilePage />
+          <ProfilePage user={user}/>
         </div>
         <div className='col-span-2 row-span-3 bg-zinc-800 rounded-lg p-4 flex items-center justify-center'>
           <ChatPlace />

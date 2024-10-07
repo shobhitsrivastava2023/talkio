@@ -1,6 +1,7 @@
 'use client';  // Ensure it's a client component
 import React, { useEffect, useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Skeleton } from "@/components/ui/skeleton"
 
 const AvatarComponent = () => {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -31,12 +32,12 @@ const AvatarComponent = () => {
   }, []);
 
   if (loading) {
-    return <div>Loading...</div>;  // Show a loading state while fetching
+    return <Skeleton className="h-40 w-40 rounded-full" />
   }
 
   return (
     <Avatar className="h-40 w-40">
-      <AvatarImage src={avatarUrl || undefined} />
+      <AvatarImage className=' object-cover'  src={avatarUrl || undefined} />
       <AvatarFallback>CN</AvatarFallback>
     </Avatar>
   );

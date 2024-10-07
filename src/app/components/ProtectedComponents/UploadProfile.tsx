@@ -5,6 +5,7 @@ import { UploadButton } from '@/utils/uploadthing';
 import { validateRequest } from '@/lib/validate-request';
 import AvatarComponent from './ProfilePage/AvatarComponent';
 
+import { twMerge } from 'tailwind-merge'
 const UploadProfile = () => {
   const [imageurl, setimageurl] = useState<string>('');
   
@@ -46,10 +47,10 @@ const UploadProfile = () => {
   };
 
   return (
-    <div className='flex flex-col justify-start gap-4 text-black'>
+    <div className='flex flex-col justify-start items-center gap-4 text-black'>
       <AvatarComponent />
       <div>
-        <UploadButton
+        <UploadButton config={{cn: twMerge}}
           endpoint="imageUploader"
           onClientUploadComplete={(res) => {
             handleUploadComplete(res);
@@ -57,6 +58,17 @@ const UploadProfile = () => {
           }}
           onUploadError={(error: Error) => {
             alert(`ERROR! ${error.message}`);
+          }}
+          content={{
+            button({ ready }) {
+              if (ready) return 'Profile Picture'
+              return 'Getting ready...'
+            },
+            allowedContent({ ready, fileTypes, isUploading }) {
+              if (!ready) return 'Checking what you can upload...'
+              if (isUploading) return 'Uploading...'
+              return `Supports: ${fileTypes.join(', ')}`
+            }
           }}
         />
       </div>
