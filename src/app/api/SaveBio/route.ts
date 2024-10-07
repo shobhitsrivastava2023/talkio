@@ -41,6 +41,8 @@ export async function GET(req: Request) {
         },
         select: {
           bio: true,
+          avatar: true, 
+          username: true, 
         },
       });
   
@@ -48,7 +50,7 @@ export async function GET(req: Request) {
         return NextResponse.json({ error: 'User not found' }, { status: 404 });
       }
   
-      return NextResponse.json({ bio: getBio.bio }, { status: 200 });
+      return NextResponse.json({ bio: getBio.bio, avatar: getBio.avatar, username: getBio.username }, { status: 200 });
     } catch (error) {
       return NextResponse.json({ error: 'Something went wrong' }, { status: 500 });
     }

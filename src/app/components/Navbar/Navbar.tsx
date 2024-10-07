@@ -22,6 +22,15 @@ const Navbar = async () => {
             </div>
 
             <div className="flex flex-row justify-end items-center w-full gap-5 m-4">
+            <div>
+                    <Link href="/Dashboard" className='text-lg font-semibold underline'>Dashboard</Link>
+                </div>
+
+                <div>
+                    <Link href="/About">About</Link>
+                </div>
+
+
                 <div>
                     {user ? (
                       <form action={logout}>
@@ -31,9 +40,7 @@ const Navbar = async () => {
                         <Link href="/loginPage">Login</Link>
                     )}
                 </div>
-                <div>
-                    <Link href="/About">About</Link>
-                </div>
+                
             </div>
         </div>
     );
