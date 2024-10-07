@@ -10,6 +10,7 @@ import { validateRequest } from '@/lib/validate-request'
 
 export default function ProfilePage({ user }: { user: { username: string } }) {
   const [bio, setBio] = useState<string>('');
+  const [bioforApi, setBioforApi] = useState<string>('');
   const [avatar, setAvatar] = useState<string>('');
   const [placeholder, setPlaceholder] = useState<string>('');
 
@@ -37,8 +38,8 @@ export default function ProfilePage({ user }: { user: { username: string } }) {
 
         if (response.ok) {
           const data = await response.json();
+         
           setPlaceholder(data?.bio || '');
-          setBio(data?.bio || '');
           setAvatar(data?.avatar || '');
         } else {
           console.log('Failed to fetch bio');
@@ -67,7 +68,7 @@ export default function ProfilePage({ user }: { user: { username: string } }) {
       });
 
       if (response.ok) {
-        console.log('Bio updated successfully');
+       setBioforApi(bio)
       } else {
         console.log('Some error occurred');
       }
@@ -89,7 +90,7 @@ export default function ProfilePage({ user }: { user: { username: string } }) {
       <div className='absolute inset-0 bg-gradient-to-t from-black to-transparent'></div>
       <div className='absolute bottom-0 left-0 right-0 p-4'>
         <h2 className="text-xl font-bold text-white">{user?.username}</h2>
-        <p className="text-sm text-gray-300 mt-1 line-clamp-2">{bio || placeholder}</p>
+        <p className="text-sm text-gray-300 mt-1 line-clamp-2">{bioforApi || placeholder}</p>
       </div>
       <div className='absolute top-2 right-2'>
         <Dialog>
