@@ -23,7 +23,7 @@ export async function GET(request: Request) {
         id: true,
         bio: true,
       },
-      take: 1,
+      take: 10,
     });
 
     return NextResponse.json(users);

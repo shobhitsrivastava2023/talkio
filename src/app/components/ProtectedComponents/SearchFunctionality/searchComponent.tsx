@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react'
 import SearchFunctionality from './SearchFunctionality'
 import { useSearchParams } from 'next/navigation'
 import Image from 'next/image'
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 
 interface User {
   id: string
@@ -50,43 +52,63 @@ export default function SearchComponent() {
   }, [searchTerm])
 
   return (
-    <div className="relative">
+    <div className="relative w-full max-w-md mx-auto">
       <SearchFunctionality />
       {isLoading && (
-        <div className="absolute top-full left-0 right-0 bg-zinc-900 p-4 rounded-lg shadow-lg z-10">
-          <p>Loading...</p>
+        <div className="absolute top-full left-0 right-0 bg-zinc-900 p-4 rounded-lg shadow-lg z-10 mt-2">
+          <p className="text-white">Loading...</p>
         </div>
       )}
       {error && (
-        <div className="absolute top-full left-0 right-0 bg-zinc-900 p-4 rounded-lg shadow-lg z-10">
+        <div className="absolute top-full left-0 right-0 bg-zinc-900 p-4 rounded-lg shadow-lg z-10 mt-2">
           <p className="text-red-500">{error}</p>
         </div>
       )}
       {searchTerm && !isLoading && !error && users.length > 0 && (
-        <div className="absolute top-full left-0 right-0 bg-zinc-900 rounded-lg shadow-lg z-10 max-h-96 overflow-y-auto">
-          <table className="min-w-full divide-y divide-zinc-800">
-            <tbody className="bg-zinc-800 divide-gray-200">
-              {users.map((user) => (
-                <tr
-                  key={user.id}
-                  className="flex flex-row justify-start items-center gap-5 hover:cursor-pointer hover:bg-slate-700"
-                >
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
-                    <Image
-                      src={user.avatar || '/placeholder.svg'}
-                      alt={`${user.username}'s avatar`}
-                      width={50}
-                      height={50}
-                      className="rounded-full object-cover"
-                    />
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-white text-start">
-                    {user.username}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="absolute top-full left-0 right-0 bg-zinc-900 rounded-lg shadow-lg z-10 mt-2 max-h-96 overflow-y-auto">
+          <ul className="divide-y divide-zinc-800">
+            {users.map((user) => (
+              <li key={user.id}>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="ghost" className="w-full h-full px-4 py-3 flex items-center gap-4 hover:bg-zinc-800 transition-colors">
+                      <Image
+                        src={user.avatar || '/placeholder.svg'}
+                        alt={`${user.username}'s avatar`}
+                        width={40}
+                        height={40}
+                        className="rounded-full object-cover"
+                      />
+                      <span className="text-sm text-white text-left flex-grow">{user.username}</span>
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className='bg-zinc-900'>
+                    <DialogHeader>
+                      <DialogTitle>{user.username}</DialogTitle>
+                      <DialogDescription>
+                        <div className="flex  justify-around items-center gap-4 mb-4 mt-6 text-white">
+                          <Image
+                            src={user.avatar || '/placeholder.svg'}
+                            alt={`${user.username}'s avatar`}
+                            width={60}
+                            height={60}
+                            className="rounded-full object-fill"
+                          />
+                          <div>
+                            <h3 className="text-lg font-semibold">{user.username}</h3>
+                            <p className="text-sm text-zinc-400">{user.bio || 'No bio available'}</p>
+                          </div>
+                          <Button className='bg-green-600 text-white'>
+                            Invite
+                          </Button>
+                        </div>
+                      </DialogDescription>
+                    </DialogHeader>
+                  </DialogContent>
+                </Dialog>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
     </div>
