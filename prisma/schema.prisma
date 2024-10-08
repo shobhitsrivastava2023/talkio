@@ -14,16 +14,20 @@ datasource db {
 }
 
 model user {
-  id       String   @id @default(cuid())
-  username String
-  email    String   @unique
-  password String
-  avatar   String?  @db.VarChar(255)
-  bio      String? 
-  sessions Session[]
-  userprofile UserProfile[]
-}
+  id             String          @id @default(cuid())
+  username       String
+  email          String          @unique
+  password       String
+  avatar         String?         @db.VarChar(255)
+  bio            String?
+  
+  sessions       Session[]       // Relations to sessions
+  userprofile    UserProfile[]   // Relations to user profiles
 
+  // Relations for invites
+  sentInvites    Invite[]        @relation("sentInvites")    // Invites sent by this user
+  receivedInvites Invite[]       @relation("receivedInvites") // Invites received by this user
+}
 model Session {
   id        String   @id
   userId    String
@@ -40,4 +44,16 @@ model UserProfile {
   userConnections  Int
   userStatus  String
 
+}
+
+model Invite {
+  id         String   @id @default(cuid())
+  senderId   String
+  receiverId String
+  status     String   @default("pending") // could be "pending", "accepted", "rejected"
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  sender     user     @relation("sentInvites", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver   user     @relation("receivedInvites", fields: [receiverId], references: [id], onDelete: Cascade)
 }
