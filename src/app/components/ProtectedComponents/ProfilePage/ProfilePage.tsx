@@ -3,6 +3,7 @@
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTrigger } from '@/components/ui/dialog'
 import { Textarea } from "@/components/ui/textarea"
+import { Skeleton } from "@/components/ui/skeleton"
 import { MdEdit } from "react-icons/md"
 import UploadProfile from '../UploadProfile'
 import { useState, useEffect } from 'react'
@@ -13,6 +14,7 @@ export default function ProfilePage({ user }: { user: { username: string } }) {
   const [bioforApi, setBioforApi] = useState<string>('');
   const [avatar, setAvatar] = useState<string>('');
   const [placeholder, setPlaceholder] = useState<string>('');
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const handleBioChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setBio(e.target.value);
@@ -20,6 +22,7 @@ export default function ProfilePage({ user }: { user: { username: string } }) {
 
   useEffect(() => {
     const fetchBio = async () => {
+      setIsLoading(true);
       const userData = await validateRequest();
       try {
         const userId = userData.user?.id;
@@ -46,6 +49,8 @@ export default function ProfilePage({ user }: { user: { username: string } }) {
         }
       } catch (error) {
         console.error('Error fetching bio:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -80,7 +85,9 @@ export default function ProfilePage({ user }: { user: { username: string } }) {
 
   return (
     <div className='h-full w-full relative'>
-      {avatar ? (
+      {isLoading ? (
+        <Skeleton className="w-full h-full" />
+      ) : avatar ? (
         <img src={avatar} alt="Profile" className="w-full h-full object-cover" />
       ) : (
         <div className="w-full h-full bg-gray-300 flex items-center justify-center text-gray-500">

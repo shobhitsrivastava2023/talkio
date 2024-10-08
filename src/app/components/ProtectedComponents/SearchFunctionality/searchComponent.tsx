@@ -23,14 +23,15 @@ async function fetchUsers(searchTerm: string): Promise<User[]> {
   return response.json()
 }
 
-async function checkInviteStatus(senderId: string, receiverId: string): Promise<boolean> {
+async function checkInviteStatus(senderId: string, receiverId: string): Promise<string> {
   const response = await fetch(`/api/sendInvite?senderId=${senderId}&receiverId=${receiverId}`);
   if (!response.ok) {
     throw new Error('Failed to check invite status');
   }
   const data = await response.json();
-  return data.status === 'pending';
+  return data.status; // Assume 'status' could be 'pending', 'accepted', etc.
 }
+
 
 
 export default function SearchComponent() {
@@ -40,7 +41,7 @@ export default function SearchComponent() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [invitingUser, setInvitingUser] = useState<string | null>(null)
-  const [invitePending, setInvitePending] = useState<{ [key: string]: boolean }>({})
+  const [invitePending, setInvitePending] = useState<{ [key: string]: string }>({});
 
   const handleInvite = async (receiverId: string) => {
     try {
@@ -59,7 +60,7 @@ export default function SearchComponent() {
     
       if (response.ok) {
         console.log('Invite sent successfully')
-        setInvitePending(prev => ({ ...prev, [receiverId]: true }))
+        setInvitePending(prev => ({ ...prev, [receiverId]: 'pending' }))
       } else {
         const errorData = await response.json()
         throw new Error(errorData.error || 'Failed to send invite')
@@ -75,37 +76,40 @@ export default function SearchComponent() {
   useEffect(() => {
     const fetchData = async () => {
       if (searchTerm) {
-        setIsLoading(true)
-        setError(null)
+        setIsLoading(true);
+        setError(null);
         try {
-          const fetchedUsers = await fetchUsers(searchTerm)
-          setUsers(fetchedUsers)
-
+          const fetchedUsers = await fetchUsers(searchTerm);
+          setUsers(fetchedUsers);
+  
           // Check invite status for each user
-          const userId = await validateRequest()
+          const userId = await validateRequest();
           if (userId.user?.id) {
             const statuses = await Promise.all(
               fetchedUsers.map(user => checkInviteStatus(userId.user!.id, user.id))
-            )
-            const newInvitePending = fetchedUsers.reduce((acc, user, index) => {
-              acc[user.id] = statuses[index]
-              return acc
-            }, {} as { [key: string]: boolean })
-            setInvitePending(newInvitePending)
+            );
+  
+            const newInviteStatus = fetchedUsers.reduce((acc, user, index) => {
+              acc[user.id] = statuses[index]; // Now storing string status (e.g., 'pending', 'accepted')
+              return acc;
+            }, {} as { [key: string]: string });
+  
+            setInvitePending(newInviteStatus);
           }
         } catch (err) {
-          setError('Failed to fetch users or check invite statuses. Please try again.')
-          setUsers([])
+          setError('Failed to fetch users or check invite statuses. Please try again.');
+          setUsers([]);
         } finally {
-          setIsLoading(false)
+          setIsLoading(false);
         }
       } else {
-        setUsers([])
+        setUsers([]);
       }
-    }
-
-    fetchData()
-  }, [searchTerm])
+    };
+  
+    fetchData();
+  }, [searchTerm]);
+  
 
   return (
     <div className="relative w-full max-w-md mx-auto">
@@ -154,17 +158,19 @@ export default function SearchComponent() {
                             <h3 className="text-lg font-semibold">{user.username}</h3>
                             <p className="text-sm text-zinc-400">{user.bio || 'No bio available'}</p>
                           </div>
-                          {invitePending[user.id] ? (
-                            <span className="px-4 py-2 bg-yellow-600 text-white rounded-md">Pending</span>
-                          ) : (
-                            <Button 
-                              className='bg-green-600 text-white hover:bg-green-700 disabled:bg-green-800'
-                              onClick={() => handleInvite(user.id)}
-                              disabled={invitingUser === user.id}
-                            >
-                              {invitingUser === user.id ? 'Inviting...' : 'Invite'}
-                            </Button>
-                          )}
+                          {invitePending[user.id] === 'accepted' ? (
+  <span className="px-4 py-2 bg-green-600 text-white rounded-md">Accepted</span>
+) : invitePending[user.id] === 'pending' ? (
+  <span className="px-4 py-2 bg-yellow-600 text-white rounded-md">Pending</span>
+) : (
+  <Button 
+    className='bg-green-600 text-white hover:bg-green-700 disabled:bg-green-800'
+    onClick={() => handleInvite(user.id)}
+    disabled={invitingUser === user.id}
+  >
+    {invitingUser === user.id ? 'Inviting...' : 'Invite'}
+  </Button>
+)}
                         </div>
                       </DialogDescription>
                     </DialogHeader>
