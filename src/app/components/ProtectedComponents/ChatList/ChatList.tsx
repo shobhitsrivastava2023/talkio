@@ -3,10 +3,12 @@
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTrigger } from '@/components/ui/dialog'
-import { CheckCircle, XCircle, Bell, BellRing, Edit, User } from 'lucide-react'
+import { CheckCircle, XCircle, Bell, BellRing, Edit, User, MessageCircle } from 'lucide-react'
 import { validateRequest } from '@/lib/validate-request'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { Skeleton } from '@/components/ui/skeleton'
+import ChatListDialog from './ChatListDialog'
+import { ScrollArea } from '@/components/ui/scroll-area'
 
 interface User {
   id: string
@@ -24,6 +26,32 @@ export default function ChatList() {
   const [invites, setInvites] = useState<Invite[]>([])
   const [hasPendingInvites, setHasPendingInvites] = useState(false)
   const [avatarsLoaded, setAvatarsLoaded] = useState<Record<string, boolean>>({})
+
+  const [acceptedInvitesForList, setAcceptedInvitesForList] = useState<Invite[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchAcceptedInvites = async () => {
+      try {
+        setIsLoading(true)
+        const userId = await validateRequest()
+        const response = await fetch(`/api/getInviteResponse?userId=${userId.user?.id}`)
+        if (!response.ok) {
+          throw new Error('Failed to fetch accepted invites')
+        }
+        const data: Invite[] = await response.json()
+        setAcceptedInvitesForList(data)
+      } catch (error) {
+        console.error('Error fetching accepted invites:', error)
+        setError('Failed to load chats. Please try again later.')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchAcceptedInvites()
+  }, [])
 
   useEffect(() => {
     const fetchInvites = async () => {
@@ -72,6 +100,14 @@ export default function ChatList() {
         const stillHasPending = invites.some(invite => invite.id !== inviteId && invite.status === 'pending')
         return stillHasPending
       })
+
+      // Update acceptedInvitesForList if an invite is accepted
+      if (action === 'accept') {
+        const acceptedInvite = invites.find(invite => invite.id === inviteId)
+        if (acceptedInvite) {
+          setAcceptedInvitesForList(prev => [...prev, { ...acceptedInvite, status: 'accepted' }])
+        }
+      }
     } catch (error) {
       console.error(`Error ${action}ing invite:`, error)
     }
@@ -159,10 +195,48 @@ export default function ChatList() {
               ))
             ) : (
               <p>No pending invites.</p>
-            )}
+            )} 
           </div>
+          
+          <hr className="my-4 border-gray-700" />
+          
+          <h2 className='text-sm text-gray-400 font-bold mb-2'>
+            Chat List:
+          </h2> 
+          <ChatListDialog />
+          
         </DialogContent>
       </Dialog>
+
+      {isLoading ? (
+        <p className="text-center text-muted-foreground py-8">Loading chats...</p>
+      ) : error ? (
+        <p className="text-center text-red-500 py-8">{error}</p>
+      ) : acceptedInvitesForList.length > 0 ? (
+        <ScrollArea className="h-[150px] pr-4">
+          <ul className="space-y-4">
+            {acceptedInvitesForList.map((invite) => (
+              <li key={invite.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-secondary/75 transition-colors">
+                <div className="flex items-center space-x-3">
+                  <Avatar>
+                    <AvatarImage src={invite.sender.avatar} alt={invite.sender.username} className='object-cover'/>
+                    <AvatarFallback>
+                      <User className="h-6 w-6" />
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="font-medium">{invite.sender.username}</span>
+                </div>
+                <Button variant="ghost" size="icon" className="text-white hover:text-primary-foreground hover:bg-primary">
+                  <MessageCircle className="h-5 w-5" />
+                  <span className="sr-only">Chat with {invite.sender.username}</span>
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </ScrollArea>
+      ) : (
+        <p className="text-center text-muted-foreground py-8">No active chats. Start a conversation!</p>
+      )}
     </div>
   )
 }

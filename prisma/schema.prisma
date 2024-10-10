@@ -25,8 +25,13 @@ model user {
   userprofile    UserProfile[]   // Relations to user profiles
 
   // Relations for invites
-  sentInvites    Invite[]        @relation("sentInvites")    // Invites sent by this user
-  receivedInvites Invite[]       @relation("receivedInvites") // Invites received by this user
+  
+ 
+  sentInvites     Invite[]  @relation("sentInvites")
+  receivedInvites Invite[]  @relation("receivedInvites")
+  conversations   Conversation[]
+  seenMessages    Message[] @relation("Seen")
+  messages        Message[]
 }
 model Session {
   id        String   @id
@@ -56,4 +61,31 @@ model Invite {
 
   sender     user     @relation("sentInvites", fields: [senderId], references: [id], onDelete: Cascade)
   receiver   user     @relation("receivedInvites", fields: [receiverId], references: [id], onDelete: Cascade)
+}
+
+
+model Conversation {
+  id            String   @id @default(cuid())
+  createdAt     DateTime @default(now())
+  lastMessageAt DateTime @default(now())
+  name          String?
+  isGroup       Boolean?
+
+  messages Message[]
+  users    user[]
+}
+
+model Message {
+  id             String   @id @default(cuid())
+  body           String?
+  image          String?
+  createdAt      DateTime @default(now())
+
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  senderId       String
+  sender         user     @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  seenBy         user[]   @relation("Seen")
 }
