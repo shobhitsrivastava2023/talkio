@@ -9,6 +9,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { Skeleton } from '@/components/ui/skeleton'
 import ChatListDialog from './ChatListDialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { prisma } from '@/db/db'
 
 interface User {
   id: string
@@ -21,6 +22,9 @@ interface Invite {
   sender: User
   status: 'pending' | 'accepted' | 'rejected'
 }
+
+
+
 
 export default function ChatList() {
   const [invites, setInvites] = useState<Invite[]>([])
@@ -115,6 +119,22 @@ export default function ChatList() {
 
   const handleAvatarLoad = (inviteId: string) => {
     setAvatarsLoaded(prev => ({ ...prev, [inviteId]: true }))
+  }
+
+  const handleStartConversation = async () => {
+    const user =  await validateRequest(); 
+    const userId = user.user?.id;
+    try {
+      // there is an error to fix
+      const createConversation = await prisma.conversation.create({
+        where : {
+          id: userId, 
+        }
+      })
+    } catch (error) {
+      
+    }
+     
   }
 
   return (
@@ -213,7 +233,7 @@ export default function ChatList() {
       ) : error ? (
         <p className="text-center text-red-500 py-8">{error}</p>
       ) : acceptedInvitesForList.length > 0 ? (
-        <ScrollArea className="h-[150px] pr-4">
+        <ScrollArea className="h-[150px] pr-4 ">
           <ul className="space-y-4">
             {acceptedInvitesForList.map((invite) => (
               <li key={invite.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-secondary/75 transition-colors">
@@ -226,7 +246,7 @@ export default function ChatList() {
                   </Avatar>
                   <span className="font-medium">{invite.sender.username}</span>
                 </div>
-                <Button variant="ghost" size="icon" className="text-white hover:text-primary-foreground hover:bg-primary">
+                <Button variant="ghost" size="icon" className="text-white hover:text-primary-foreground hover:bg-primary" onClick={handleStartConversation}>
                   <MessageCircle className="h-5 w-5" />
                   <span className="sr-only">Chat with {invite.sender.username}</span>
                 </Button>

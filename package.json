@@ -26,6 +26,8 @@
     "lucia": "^3.2.0",
     "lucide-react": "^0.447.0",
     "next": "14.2.14",
+    "pusher": "^5.2.0",
+    "pusher-js": "^8.4.0-rc2",
     "react": "^18",
     "react-dom": "^18",
     "react-hook-form": "^7.53.0",

@@ -32,6 +32,8 @@ model user {
   conversations   Conversation[]
   seenMessages    Message[] @relation("Seen")
   messages        Message[]
+  senderMessage   Conversation[] @relation("senderMessage")
+  
 }
 model Session {
   id        String   @id
@@ -70,6 +72,10 @@ model Conversation {
   lastMessageAt DateTime @default(now())
   name          String?
   isGroup       Boolean?
+  senderId      String
+  recieverId    String
+  senderMessage  user @relation("senderMessage", fields: [senderId], references: [id], onDelete: Cascade)
+ 
 
   messages Message[]
   users    user[]
