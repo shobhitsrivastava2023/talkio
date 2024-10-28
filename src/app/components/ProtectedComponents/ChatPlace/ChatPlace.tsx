@@ -19,8 +19,15 @@ const ChatPlace = () => {
   }, [receiverId]);
 
   return (
-    <div className="w-full h-full">
-      {receiver ? <ChatRoom receiver={receiver} /> : <ChatRoomSkeleton />}
+    
+    <div className="w-full h-full ">
+      {!receiverId ? (
+        <div className="text-gray-400 flex justify-center items-center " >No chat selected</div>
+      ) : receiver ? (
+        <ChatRoom receiver={receiver} />
+      ) : (
+        <ChatRoomSkeleton />
+      )}
     </div>
   );
 };
