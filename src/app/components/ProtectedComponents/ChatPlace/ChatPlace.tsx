@@ -1,11 +1,28 @@
-import React from 'react'
+'use client'
+
+import React from 'react';
+import ChatRoom from './chatroom';
+import ChatRoomSkeleton from './ChatSkeleton';
+import { useSearchParams } from 'next/navigation';
 
 const ChatPlace = () => {
-  return (
-    <div>
-      this is your chat place
-    </div>
-  )
-}
+  const searchParams = useSearchParams();
+  const receiverId = searchParams.get('chatWith');
+  const [receiver, setReceiver] = React.useState(null);
 
-export default ChatPlace
+  React.useEffect(() => {
+    if (receiverId) {
+      fetch(`/api/receiverDetails/${receiverId}`)
+        .then((res) => res.json())
+        .then((data) => setReceiver(data));
+    }
+  }, [receiverId]);
+
+  return (
+    <div className="w-full h-full">
+      {receiver ? <ChatRoom receiver={receiver} /> : <ChatRoomSkeleton />}
+    </div>
+  );
+};
+
+export default ChatPlace;

@@ -10,7 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import ChatListDialog from './ChatListDialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { prisma } from '@/db/db'
-
+import {useRouter} from 'next/navigation'
 interface User {
   id: string
   username: string
@@ -27,6 +27,7 @@ interface Invite {
 
 
 export default function ChatList() {
+  const router = useRouter(); 
   const [invites, setInvites] = useState<Invite[]>([])
   const [hasPendingInvites, setHasPendingInvites] = useState(false)
   const [avatarsLoaded, setAvatarsLoaded] = useState<Record<string, boolean>>({})
@@ -121,22 +122,7 @@ export default function ChatList() {
     setAvatarsLoaded(prev => ({ ...prev, [inviteId]: true }))
   }
 
-  const handleStartConversation = async () => {
-    const user =  await validateRequest(); 
-    const userId = user.user?.id;
-    try {
-      // there is an error to fix
-      const createConversation = await prisma.conversation.create({
-        where : {
-          id: userId, 
-        }
-      })
-    } catch (error) {
-      
-    }
-     
-  }
-
+  
   return (
     <div className="relative w-full h-full bg-zinc-800 rounded-lg p-4">
       <h2 className="text-lg font-semibold text-white mb-4">Your Chats</h2>
@@ -246,10 +232,15 @@ export default function ChatList() {
                   </Avatar>
                   <span className="font-medium">{invite.sender.username}</span>
                 </div>
-                <Button variant="ghost" size="icon" className="text-white hover:text-primary-foreground hover:bg-primary" onClick={handleStartConversation}>
-                  <MessageCircle className="h-5 w-5" />
-                  <span className="sr-only">Chat with {invite.sender.username}</span>
-                </Button>
+                <Button 
+  variant="ghost" 
+  size="icon" 
+  className="text-white hover:text-primary-foreground hover:bg-primary"
+  onClick={() => router.push(`?chatWith=${invite.sender.id}`)}
+>
+  <MessageCircle className="h-5 w-5" />
+  <span className="sr-only">Chat with {invite.sender.username}</span>
+</Button>
               </li>
             ))}
           </ul>
