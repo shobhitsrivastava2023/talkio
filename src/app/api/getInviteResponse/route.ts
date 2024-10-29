@@ -11,11 +11,15 @@ export async function GET(req: Request) {
   try {
     const acceptedInvites = await prisma.invite.findMany({
       where: {
-        receiverId: userId,
-        status: 'accepted',
+
+        OR: [
+          { receiverId: userId },
+          { senderId: userId }
+        ],
       },
       include: {
-        sender: true, // Include sender details if needed
+        sender: true,
+        receiver: true,
       },
     });
 

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTrigger } from '@/components/ui/dialog'
 import { CheckCircle, XCircle, Bell, BellRing, Edit, User, MessageCircle } from 'lucide-react'
@@ -9,8 +10,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { Skeleton } from '@/components/ui/skeleton'
 import ChatListDialog from './ChatListDialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { prisma } from '@/db/db'
-import {useRouter} from 'next/navigation'
+
 interface User {
   id: string
   username: string
@@ -23,62 +23,51 @@ interface Invite {
   status: 'pending' | 'accepted' | 'rejected'
 }
 
-
-
-
-export default function ChatList() {
-  const router = useRouter(); 
+export default function Component() {
+  const router = useRouter()
   const [invites, setInvites] = useState<Invite[]>([])
   const [hasPendingInvites, setHasPendingInvites] = useState(false)
   const [avatarsLoaded, setAvatarsLoaded] = useState<Record<string, boolean>>({})
-
   const [acceptedInvitesForList, setAcceptedInvitesForList] = useState<Invite[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    const fetchAcceptedInvites = async () => {
-      try {
-        setIsLoading(true)
-        const userId = await validateRequest()
-        const response = await fetch(`/api/getInviteResponse?userId=${userId.user?.id}`)
-        if (!response.ok) {
-          throw new Error('Failed to fetch accepted invites')
-        }
-        const data: Invite[] = await response.json()
-        setAcceptedInvitesForList(data)
-      } catch (error) {
-        console.error('Error fetching accepted invites:', error)
-        setError('Failed to load chats. Please try again later.')
-      } finally {
-        setIsLoading(false)
+  const fetchData = async () => {
+    try {
+      setIsLoading(true)
+      const userId = await validateRequest()
+      if (!userId.user?.id) {
+        throw new Error('User not found')
       }
-    }
 
-    fetchAcceptedInvites()
-  }, [])
+      const [invitesResponse, acceptedInvitesResponse] = await Promise.all([
+        fetch(`/api/getInvite?userId=${userId.user.id}`),
+        fetch(`/api/getInviteResponse?userId=${userId.user.id}`)
+      ])
+
+      if (!invitesResponse.ok || !acceptedInvitesResponse.ok) {
+        throw new Error('Failed to fetch data')
+      }
+
+      const invitesData: Invite[] = await invitesResponse.json()
+      const acceptedInvitesData: Invite[] = await acceptedInvitesResponse.json()
+
+      setInvites(invitesData)
+      setHasPendingInvites(invitesData.some(invite => invite.status === 'pending'))
+      setAcceptedInvitesForList(acceptedInvitesData)
+    } catch (error) {
+      console.error('Error fetching data:', error)
+      setError('Failed to load data. Please try again later.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   useEffect(() => {
-    const fetchInvites = async () => {
-      try {
-        const user = await validateRequest()
-        if (!user.user?.id) {
-          console.error('User not found')
-          return
-        }
-        const response = await fetch(`/api/getInvite?userId=${user.user.id}`)
-        if (!response.ok) {
-          throw new Error('Failed to fetch invites')
-        }
-        const data: Invite[] = await response.json()
-        setInvites(data)
-        setHasPendingInvites(data.some(invite => invite.status === 'pending'))
-      } catch (error) {
-        console.error('Error fetching invites:', error)
-      }
-    }
-
-    fetchInvites()
+    fetchData()
+    // Set up polling every 30 seconds
+    const intervalId = setInterval(fetchData, 30000)
+    return () => clearInterval(intervalId)
   }, [])
 
   const handleInviteResponse = async (inviteId: string, action: 'accept' | 'reject') => {
@@ -95,24 +84,8 @@ export default function ChatList() {
         throw new Error('Failed to update invite')
       }
 
-      setInvites(prevInvites =>
-        prevInvites.map(invite =>
-          invite.id === inviteId ? { ...invite, status: action === 'accept' ? 'accepted' : 'rejected' } : invite
-        )
-      )
-
-      setHasPendingInvites(prevState => {
-        const stillHasPending = invites.some(invite => invite.id !== inviteId && invite.status === 'pending')
-        return stillHasPending
-      })
-
-      // Update acceptedInvitesForList if an invite is accepted
-      if (action === 'accept') {
-        const acceptedInvite = invites.find(invite => invite.id === inviteId)
-        if (acceptedInvite) {
-          setAcceptedInvitesForList(prev => [...prev, { ...acceptedInvite, status: 'accepted' }])
-        }
-      }
+      // Refetch data to ensure both users have up-to-date information
+      await fetchData()
     } catch (error) {
       console.error(`Error ${action}ing invite:`, error)
     }
@@ -122,7 +95,6 @@ export default function ChatList() {
     setAvatarsLoaded(prev => ({ ...prev, [inviteId]: true }))
   }
 
-  
   return (
     <div className="relative w-full h-full bg-zinc-800 rounded-lg p-4">
       <h2 className="text-lg font-semibold text-white mb-4">Your Chats</h2>
@@ -233,14 +205,14 @@ export default function ChatList() {
                   <span className="font-medium">{invite.sender.username}</span>
                 </div>
                 <Button 
-  variant="ghost" 
-  size="icon" 
-  className="text-white hover:text-primary-foreground hover:bg-primary"
-  onClick={() => router.push(`?chatWith=${invite.sender.id}`)}
->
-  <MessageCircle className="h-5 w-5" />
-  <span className="sr-only">Chat with {invite.sender.username}</span>
-</Button>
+                  variant="ghost" 
+                  size="icon" 
+                  className="text-white hover:text-primary-foreground hover:bg-primary"
+                  onClick={() => router.push(`?chatWith=${invite.sender.id}`)}
+                >
+                  <MessageCircle className="h-5 w-5" />
+                  <span className="sr-only">Chat with {invite.sender.username}</span>
+                </Button>
               </li>
             ))}
           </ul>
