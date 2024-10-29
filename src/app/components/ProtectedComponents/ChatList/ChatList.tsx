@@ -20,6 +20,9 @@ interface User {
 interface Invite {
   id: string
   sender: User
+  receiverId : string
+  senderId : string,
+  receiver: User
   status: 'pending' | 'accepted' | 'rejected'
 }
 
@@ -31,6 +34,7 @@ export default function Component() {
   const [acceptedInvitesForList, setAcceptedInvitesForList] = useState<Invite[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   const fetchData = async () => {
     try {
@@ -39,22 +43,28 @@ export default function Component() {
       if (!userId.user?.id) {
         throw new Error('User not found')
       }
-
+  
+      setCurrentUserId(userId.user.id);  // Store the current user ID
+  
       const [invitesResponse, acceptedInvitesResponse] = await Promise.all([
         fetch(`/api/getInvite?userId=${userId.user.id}`),
         fetch(`/api/getInviteResponse?userId=${userId.user.id}`)
       ])
-
+  
       if (!invitesResponse.ok || !acceptedInvitesResponse.ok) {
         throw new Error('Failed to fetch data')
       }
-
+  
       const invitesData: Invite[] = await invitesResponse.json()
-      const acceptedInvitesData: Invite[] = await acceptedInvitesResponse.json()
-
+      const acceptedInvitesData: Invite[] = await acceptedInvitesResponse.json();
+      const uniqueAcceptedInvites = Array.from(
+        new Map(acceptedInvitesData.map(invite => [invite.id, invite])).values()
+      );
+      setAcceptedInvitesForList(uniqueAcceptedInvites);
+  
       setInvites(invitesData)
       setHasPendingInvites(invitesData.some(invite => invite.status === 'pending'))
-      setAcceptedInvitesForList(acceptedInvitesData)
+      
     } catch (error) {
       console.error('Error fetching data:', error)
       setError('Failed to load data. Please try again later.')
@@ -66,7 +76,7 @@ export default function Component() {
   useEffect(() => {
     fetchData()
     // Set up polling every 30 seconds
-    const intervalId = setInterval(fetchData, 30000)
+    const intervalId = setInterval(fetchData, 300000)
     return () => clearInterval(intervalId)
   }, [])
 
@@ -193,28 +203,43 @@ export default function Component() {
       ) : acceptedInvitesForList.length > 0 ? (
         <ScrollArea className="h-[150px] pr-4 ">
           <ul className="space-y-4">
-            {acceptedInvitesForList.map((invite) => (
-              <li key={invite.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-secondary/75 transition-colors">
-                <div className="flex items-center space-x-3">
-                  <Avatar>
-                    <AvatarImage src={invite.sender.avatar} alt={invite.sender.username} className='object-cover'/>
-                    <AvatarFallback>
-                      <User className="h-6 w-6" />
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="font-medium">{invite.sender.username}</span>
-                </div>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="text-white hover:text-primary-foreground hover:bg-primary"
-                  onClick={() => router.push(`?chatWith=${invite.sender.id}`)}
-                >
-                  <MessageCircle className="h-5 w-5" />
-                  <span className="sr-only">Chat with {invite.sender.username}</span>
-                </Button>
-              </li>
-            ))}
+          {acceptedInvitesForList.map((invite) => {
+  // Determine if the current user is the sender
+ 
+  const isSender = invite.senderId === currentUserId;
+  // Get the user to display (receiver if current user is sender, sender if current user is receiver)
+  const userToDisplay = isSender ? invite.receiver : invite.sender;
+
+  return (
+    <li 
+      key={invite.id} 
+      className="flex items-center justify-between p-3 rounded-lg hover:bg-secondary/75 transition-colors"
+    >
+      <div className="flex items-center space-x-3">
+        <Avatar>
+          <AvatarImage 
+            src={userToDisplay.avatar} 
+            alt={userToDisplay.username} 
+            className='object-cover'
+          />
+          <AvatarFallback>
+            <User className="h-6 w-6" />
+          </AvatarFallback>
+        </Avatar>
+        <span className="font-medium">{userToDisplay.username}</span>
+      </div>
+      <Button 
+        variant="ghost" 
+        size="icon" 
+        className="text-white hover:text-primary-foreground hover:bg-primary"
+        onClick={() => router.push(`?chatWith=${userToDisplay.id}`)}
+      >
+        <MessageCircle className="h-5 w-5" />
+        <span className="sr-only">Chat with {userToDisplay.username}</span>
+      </Button>
+    </li>
+  );
+})}
           </ul>
         </ScrollArea>
       ) : (
