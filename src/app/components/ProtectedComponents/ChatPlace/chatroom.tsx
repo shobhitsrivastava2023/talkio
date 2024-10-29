@@ -1,12 +1,23 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { User, Send } from 'lucide-react'
-import { addDoc, collection, onSnapshot, query, orderBy, serverTimestamp } from 'firebase/firestore'
+import { 
+  addDoc, 
+  collection, 
+  onSnapshot, 
+  query, 
+  orderBy, 
+  serverTimestamp, 
+  where,
+  Unsubscribe, 
+  and,
+  or
+} from 'firebase/firestore'
 import { db } from '../../../../../firebase-config'
 import { validateRequest } from '@/lib/validate-request'
 
@@ -28,64 +39,129 @@ export default function ChatRoom({ receiver }: { receiver: ChatReceiver | null }
   const [messages, setMessages] = useState<Message[]>([])
   const [newMessage, setNewMessage] = useState('')
   const [currentUser, setCurrentUser] = useState<{ id: string; username: string } | null>(null)
+  const unsubscribeRef = useRef<Unsubscribe | null>(null)
 
+  // Fetch current user
   useEffect(() => {
+    let mounted = true
+
     const fetchCurrentUser = async () => {
-      const user = await validateRequest()
-      if (user?.user) {
-        setCurrentUser({ id: user.user.id, username: user.user.username })
+      try {
+        const user = await validateRequest()
+        if (user?.user && mounted) {
+          setCurrentUser({ id: user.user.id, username: user.user.username })
+        }
+      } catch (error) {
+        console.error('Error fetching current user:', error)
       }
     }
+
     fetchCurrentUser()
+
+    return () => {
+      mounted = false
+    }
   }, [])
 
+  // Set up message listener
   useEffect(() => {
-    if (!receiver) return
+    // Clean up previous subscription if it exists
+    if (unsubscribeRef.current) {
+      unsubscribeRef.current()
+      unsubscribeRef.current = null
+    }
 
-    const messageRef = collection(db, "messages")
-    const q = query(messageRef, orderBy("createdAt"))
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const fetchedMessages = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        content: doc.data().text,
-        senderId: doc.data().user,
-        senderName: doc.data().username,
-        timestamp: doc.data().createdAt?.toDate(),
-      }))
-      setMessages(fetchedMessages)
-    })
-
-    return () => unsubscribe()
-  }, [receiver])
-
-  if (!receiver) {
-    return (
-      <div className="h-full flex items-center justify-center text-gray-400">
-        Select a chat to start messaging
-      </div>
-    )
-  }
-
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!newMessage.trim() || !currentUser) return
+    if (!receiver?.username || !currentUser?.username) {
+      return
+    }
 
     try {
-      await addDoc(collection(db, "messages"), {
+      const messageRef = collection(db, "messages")
+  const messageQuery = query(
+    messageRef,
+    or(
+      and(
+        where("username", "==", currentUser.username),
+        where("receivername", "==", receiver.username)
+      ),
+      and(
+        where("username", "==", receiver.username),
+        where("receivername", "==", currentUser.username)
+      )
+    ),
+    orderBy("createdAt", "asc")
+  )
+      
+
+      const unsub =  onSnapshot(
+        messageQuery,
+        (snapshot) => {
+          const fetchedMessages = snapshot.docs.map((doc) => {
+            const data = doc.data()
+            return {
+              id: doc.id,
+              content: data.text,
+              senderId: data.user,
+              senderName: data.username,
+              timestamp: data.createdAt ? new Date(data.createdAt.seconds * 1000) : new Date(),
+            }
+          })
+          setMessages(fetchedMessages)
+        },
+        (error) => {
+          console.error("Error in message subscription:", error)
+        }
+      )
+
+      // Store unsubscribe function in ref
+      unsubscribeRef.current = unsub
+
+      // Cleanup function
+      return () => {
+        if (unsubscribeRef.current) {
+          unsubscribeRef.current()
+          unsubscribeRef.current = null
+        }
+      }
+    } catch (error) {
+      console.error("Error setting up message listener:", error)
+    }
+  }, [receiver?.username, currentUser?.username])
+
+  // Handle message sending
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newMessage.trim() || !currentUser || !receiver) return
+
+    try {
+      const messageData = {
         text: newMessage,
         createdAt: serverTimestamp(),
         user: currentUser.id,
         username: currentUser.username,
         receivername: receiver.username,
-      })
+        senderName: currentUser.username,
+        roomId : 'room1',
 
+      }
+
+      await addDoc(collection(db, "messages"), messageData)
       setNewMessage('')
     } catch (error) {
-      console.error("Error sending message: ", error)
+      console.error("Error sending message:", error)
     }
   }
 
+  if (!receiver || !currentUser) {
+    return (
+      <div className="h-full flex items-center justify-center text-gray-400">
+        {!receiver ? "Select a chat to start messaging" : "Loading user information..."}
+      </div>
+    )
+  }
+
+  console.log(messages); 
+ 
   return (
     <div className="h-full flex flex-col bg-zinc-900 rounded-md">
       <div className="flex items-center space-x-3 p-4 border-b border-zinc-700">
@@ -100,27 +176,31 @@ export default function ChatRoom({ receiver }: { receiver: ChatReceiver | null }
 
       <ScrollArea className="flex-1 p-4">
         <div className="space-y-4">
-          {messages.map((message) => (
-            <div
-              key={message.id}
-              className={`flex ${message.senderId === currentUser?.id ? 'justify-end' : 'justify-start'}`}
-            >
-              <div className="flex flex-col max-w-[70%]">
-                <div
-                  className={`rounded-lg p-3 ${
-                    message.senderId === currentUser?.id
-                      ? 'bg-blue-600 text-white rounded-br-none'
-                      : 'bg-zinc-700 text-white rounded-bl-none'
-                  }`}
-                >
-                  {message.content}
+          {messages.length === 0 ? (
+            <div className="text-center text-gray-400">No messages yet</div>
+          ) : (
+            messages.map((message) => (
+              <div
+                key={message.id}
+                className={`flex ${message.senderId === currentUser.id ? 'justify-end' : 'justify-start'}`}
+              >
+                <div className="flex flex-col max-w-[70%]">
+                  <div
+                    className={`rounded-lg p-3 ${
+                      message.senderId === currentUser.id
+                        ? 'bg-blue-600 text-white rounded-br-none'
+                        : 'bg-zinc-700 text-white rounded-bl-none'
+                    }`}
+                  >
+                    {message.content}
+                  </div>
+                  <span className="text-xs text-gray-400 mt-1">
+                    {message.senderId === currentUser.id ? 'You' : message.senderName}
+                  </span>
                 </div>
-                <span className="text-xs text-gray-400 mt-1">
-                  {message.senderId === currentUser?.id ? 'You' : message.senderName}
-                </span>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </ScrollArea>
 

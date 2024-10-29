@@ -23,6 +23,7 @@ model user {
   
   sessions       Session[]       // Relations to sessions
   userprofile    UserProfile[]   // Relations to user profiles
+  userRooms      userRooms[]
 
   // Relations for invites
   
@@ -52,6 +53,16 @@ model UserProfile {
   userStatus  String
 
 }
+
+model userRooms {
+  id       String   @id @default(cuid())
+  receiverEndUserName  String 
+  userEndName  String 
+  user     user     @relation(fields: [id], references: [id], onDelete: Cascade)
+}
+
+
+
 
 model Invite {
   id         String   @id @default(cuid())

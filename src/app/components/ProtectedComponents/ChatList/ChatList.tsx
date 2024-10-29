@@ -105,6 +105,11 @@ export default function Component() {
     setAvatarsLoaded(prev => ({ ...prev, [inviteId]: true }))
   }
 
+  const handleChatRoom = async () => { 
+    
+    
+  }
+
   return (
     <div className="relative w-full h-full bg-zinc-800 rounded-lg p-4">
       <h2 className="text-lg font-semibold text-white mb-4">Your Chats</h2>
