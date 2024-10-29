@@ -13,8 +13,15 @@ export async function GET(req: Request) {
       where: {
 
         OR: [
-          { receiverId: userId },
-          { senderId: userId }
+          { receiverId: userId,
+            status: 'accepted'
+
+           },
+          { senderId: userId,
+            status: 'accepted'
+
+
+           }
         ],
       },
       include: {

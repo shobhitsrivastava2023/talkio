@@ -40,6 +40,7 @@ export default function ChatRoom({ receiver }: { receiver: ChatReceiver | null }
   const [newMessage, setNewMessage] = useState('')
   const [currentUser, setCurrentUser] = useState<{ id: string; username: string } | null>(null)
   const unsubscribeRef = useRef<Unsubscribe | null>(null)
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   // Fetch current user
   useEffect(() => {
@@ -128,6 +129,13 @@ export default function ChatRoom({ receiver }: { receiver: ChatReceiver | null }
     }
   }, [receiver?.username, currentUser?.username])
 
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages]);
+
+
   // Handle message sending
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -173,36 +181,46 @@ export default function ChatRoom({ receiver }: { receiver: ChatReceiver | null }
         </Avatar>
         <h2 className="font-semibold text-white">{receiver.username}</h2>
       </div>
+      <div className='h-[500px]'>
 
-      <ScrollArea className="flex-1 p-4">
+    
+      <ScrollArea className="flex-1 h-[500px] p-4"> {/* Set a fixed height */}
         <div className="space-y-4">
           {messages.length === 0 ? (
             <div className="text-center text-gray-400">No messages yet</div>
           ) : (
-            messages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex ${message.senderId === currentUser.id ? 'justify-end' : 'justify-start'}`}
-              >
-                <div className="flex flex-col max-w-[70%]">
-                  <div
-                    className={`rounded-lg p-3 ${
-                      message.senderId === currentUser.id
-                        ? 'bg-blue-600 text-white rounded-br-none'
-                        : 'bg-zinc-700 text-white rounded-bl-none'
-                    }`}
-                  >
-                    {message.content}
+            <>
+              {messages.map((message) => (
+                <div
+                  key={message.id}
+                  className={`flex ${
+                    message.senderId === currentUser.id ? "justify-end" : "justify-start"
+                  }`}
+                >
+                  <div className="flex flex-col max-w-[70%]">
+                    <div
+                      className={`rounded-lg p-3 ${
+                        message.senderId === currentUser.id
+                          ? "bg-blue-600 text-white rounded-br-none"
+                          : "bg-zinc-700 text-white rounded-bl-none"
+                      }`}
+                    >
+                      {message.content}
+                    </div>
+                    <span className="text-xs text-gray-400 mt-1">
+                      {message.senderId === currentUser.id ? "You" : message.senderName}
+                    </span>
                   </div>
-                  <span className="text-xs text-gray-400 mt-1">
-                    {message.senderId === currentUser.id ? 'You' : message.senderName}
-                  </span>
                 </div>
-              </div>
-            ))
+              ))}
+              <div ref={scrollRef} /> {/* Scroll anchor */}
+            </>
           )}
         </div>
       </ScrollArea>
+      </div>
+
+    
 
       <form onSubmit={handleSendMessage} className="p-4 border-t border-zinc-700">
         <div className="flex space-x-2">
