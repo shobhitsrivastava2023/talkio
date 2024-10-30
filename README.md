@@ -25,5 +25,5 @@ Smooth Chatting Experience
 
 ## 🚀 About Me
 I'm a full stack developer, and have genuine interest in bulding softwares to ease up the daily life requirements of people. 
-This is my first project that i have designed and implemented on my own. This project used firestore realtime db (not websockets) and has interestingly very uncommon backend structure. (given its my first time designing the architecture working of backend). 
+This is my first project that i have designed and implemented on my own. This project used firestore realtime db (not websockets natively) and has interestingly very uncommon backend structure. (given its my first time designing the architecture working of backend). 
 hope you find it useful. 
